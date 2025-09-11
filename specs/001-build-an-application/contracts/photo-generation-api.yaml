@@ -1,0 +1,191 @@
+openapi: 3.0.3
+info:
+  title: Photo Generation Service API
+  description: Internal API contracts for AI photo generation functionality
+  version: 1.0.0
+
+paths:
+  /api/photos/generate:
+    post:
+      summary: Generate new photo using AI model
+      operationId: generatePhoto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhotoGenerationRequest'
+      responses:
+        '200':
+          description: Photo generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoGenerationResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Generation service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/photos/status/{generation_id}:
+    get:
+      summary: Check generation status
+      operationId: getGenerationStatus
+      parameters:
+        - name: generation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationStatusResponse'
+
+components:
+  schemas:
+    PhotoGenerationRequest:
+      type: object
+      required:
+        - prompt
+        - model_name
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Text prompt for image generation
+          example: "A majestic mountain landscape at sunset"
+        model_name:
+          type: string
+          enum: ['fal-ai/fast-sdxl', 'fal-ai/stable-diffusion-xl', 'fal-ai/flux-dev']
+          description: AI model to use for generation
+        width:
+          type: integer
+          minimum: 256
+          maximum: 2048
+          default: 512
+          description: Generated image width in pixels
+        height:
+          type: integer
+          minimum: 256
+          maximum: 2048
+          default: 512
+          description: Generated image height in pixels
+        num_inference_steps:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Number of denoising steps
+        guidance_scale:
+          type: number
+          minimum: 1.0
+          maximum: 20.0
+          default: 7.5
+          description: How closely to follow the prompt
+        seed:
+          type: integer
+          description: Random seed for reproducibility
+        negative_prompt:
+          type: string
+          maxLength: 500
+          description: What to avoid in the generated image
+
+    PhotoGenerationResponse:
+      type: object
+      required:
+        - id
+        - status
+        - fal_url
+        - model_name
+        - prompt
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique photo identifier
+        status:
+          type: string
+          enum: ['completed', 'processing', 'failed']
+        fal_url:
+          type: string
+          format: uri
+          description: URL to generated image
+        model_name:
+          type: string
+          description: Model used for generation
+        prompt:
+          type: string
+          description: Original prompt used
+        generation_params:
+          type: object
+          description: Parameters used for generation
+        file_size:
+          type: integer
+          description: Image file size in bytes
+        dimensions:
+          type: string
+          pattern: '^\d+x\d+$'
+          description: Image dimensions as 'widthxheight'
+        created_at:
+          type: string
+          format: date-time
+          description: Generation timestamp
+
+    GenerationStatusResponse:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          description: Generation identifier
+        status:
+          type: string
+          enum: ['queued', 'processing', 'completed', 'failed']
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Completion percentage
+        estimated_time:
+          type: integer
+          description: Estimated completion time in seconds
+        error_message:
+          type: string
+          description: Error details if status is failed
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
