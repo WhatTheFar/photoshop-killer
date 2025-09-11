@@ -46,34 +46,34 @@ AI photo generation and album management application that allows users to genera
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 **Simplicity**:
-- Projects: [#] (max 3 - e.g., api, cli, tests)
-- Using framework directly? (no wrapper classes)
-- Single data model? (no DTOs unless serialization differs)
-- Avoiding patterns? (no Repository/UoW without proven need)
+- Projects: 1 (single web app)
+- Using framework directly? Yes (React, Vite, SQLite directly)
+- Single data model? Yes (shared between UI and database)
+- Avoiding patterns? Yes (direct SQL queries, no ORM abstraction)
 
 **Architecture**:
-- EVERY feature as library? (no direct app code)
-- Libraries listed: [name + purpose for each]
-- CLI per library: [commands with --help/--version/--format]
-- Library docs: llms.txt format planned?
+- EVERY feature as library? Yes (photo-gen, album-mgmt, storage libs)
+- Libraries listed: photo-generation (fal.ai integration), album-management (CRUD + drag-drop), sqlite-storage (local persistence)
+- CLI per library: photo-gen CLI, album CLI, storage CLI with --help/--version/--format
+- Library docs: llms.txt format planned for each library
 
 **Testing (NON-NEGOTIABLE)**:
-- RED-GREEN-Refactor cycle enforced? (test MUST fail first)
-- Git commits show tests before implementation?
-- Order: Contract→Integration→E2E→Unit strictly followed?
-- Real dependencies used? (actual DBs, not mocks)
-- Integration tests for: new libraries, contract changes, shared schemas?
+- RED-GREEN-Refactor cycle enforced? Yes (tests written first, must fail)
+- Git commits show tests before implementation? Yes (separate test commits)
+- Order: Contract→Integration→E2E→Unit strictly followed? Yes
+- Real dependencies used? Yes (actual SQLite DB, actual fal.ai calls in integration tests)
+- Integration tests for: fal.ai integration, SQLite operations, drag-drop interactions
 - FORBIDDEN: Implementation before test, skipping RED phase
 
 **Observability**:
-- Structured logging included?
-- Frontend logs → backend? (unified stream)
-- Error context sufficient?
+- Structured logging included? Yes (console structured logs with context)
+- Frontend logs → backend? N/A (frontend-only app)
+- Error context sufficient? Yes (user action, error type, recovery suggestions)
 
 **Versioning**:
-- Version number assigned? (MAJOR.MINOR.BUILD)
-- BUILD increments on every change?
-- Breaking changes handled? (parallel tests, migration plan)
+- Version number assigned? 1.0.0 (MAJOR.MINOR.BUILD)
+- BUILD increments on every change? Yes
+- Breaking changes handled? Yes (database migrations, backward compatibility tests)
 
 ## Project Structure
 
