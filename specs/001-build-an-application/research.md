@@ -18,9 +18,9 @@
 **Alternatives Considered**: react-beautiful-dnd (less maintained), react-dnd (complex), native HTML5 (limited)
 
 ### 4. Build Tool Configuration
-**Decision**: Vite with Node.js integration configuration
-**Rationale**: Fast development, modern tooling, flexible configuration for SQLite native dependencies
-**Alternatives Considered**: Create React App (less flexible), Next.js (overkill), Webpack (slower)
+**Decision**: Next.js 15 with Turbopack in existing Turborepo monorepo
+**Rationale**: Already configured, excellent performance with Turbopack, seamless integration with existing @repo/ui package
+**Alternatives Considered**: Vite (would require restructuring), Create React App (less flexible), staying with current setup (best choice)
 
 ### 5. UI Component Library
 **Decision**: shadcn/ui with custom photo gallery components
@@ -38,15 +38,15 @@
 **Alternatives Considered**: Global handler only (less granular), try-catch only (misses render errors)
 
 ### 8. Testing Strategy
-**Decision**: Jest + React Testing Library + MSW for API mocking
-**Rationale**: Industry standard, realistic API mocking, built-in async support, comprehensive coverage
-**Alternatives Considered**: Enzyme (deprecated), Cypress only (slower), testing without mocks (unreliable)
+**Decision**: Jest + React Testing Library + MSW for API mocking (Next.js compatible)
+**Rationale**: Industry standard, works with Next.js/Turborepo, realistic API mocking, built-in async support
+**Alternatives Considered**: Vitest (good but Next.js has better Jest integration), Cypress only (slower), testing without mocks (unreliable)
 
 ## Architecture Decisions
 
 ### Project Structure
-- Single web application with local persistence
-- Feature-based library organization (photo-gen, album-mgmt, storage)
+- Turborepo monorepo with Next.js app in apps/web
+- Feature-based library organization in packages/ (@repo/photo-generation, @repo/album-management, @repo/sqlite-storage)
 - No backend - pure frontend with SQLite storage
 
 ### Data Flow
@@ -56,7 +56,7 @@
 - Custom hooks handle async operations
 
 ### Performance Optimizations
-- Vite for fast development and optimized builds
+- Next.js 15 with Turbopack for fast development and optimized builds
 - better-sqlite3 WAL mode for concurrent access
 - CSS-only masonry layouts for gallery performance
 - React 19 concurrent features for smooth interactions

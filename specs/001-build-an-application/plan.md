@@ -29,15 +29,15 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-AI photo generation and album management application that allows users to generate photos using various AI models and prompt templates, then organize them into albums grouped by projects. Features drag-and-drop album reorganization and tile-based photo viewing interface. Built with React/TypeScript using Vite, shadcn UI components, Tailwind CSS, fal.ai for image generation, and SQLite for local data persistence.
+AI photo generation and album management application that allows users to generate photos using various AI models and prompt templates, then organize them into albums grouped by projects. Features drag-and-drop album reorganization and tile-based photo viewing interface. Built as a Next.js 15 application within a Turborepo monorepo, using React/TypeScript, shadcn UI components, Tailwind CSS, fal.ai for image generation, and SQLite for local data persistence.
 
 ## Technical Context
 **Language/Version**: TypeScript 5.9+ with React 19+  
-**Primary Dependencies**: Vite, React, shadcn/ui, Tailwind CSS, fal.ai SDK, SQLite (better-sqlite3)  
+**Primary Dependencies**: Next.js 15, Turbopack, React, shadcn/ui, Tailwind CSS, fal.ai SDK, SQLite (better-sqlite3)  
 **Storage**: SQLite database for metadata, fal.ai URLs for image storage  
-**Testing**: Vitest for unit/integration tests, Playwright for E2E  
+**Testing**: Jest/Testing Library for unit/integration tests, Playwright for E2E  
 **Target Platform**: Desktop web application (Chrome, Firefox, Safari)  
-**Project Type**: web - single frontend application with local persistence  
+**Project Type**: monorepo - Next.js app within Turborepo structure (apps/web)  
 **Performance Goals**: <2s image generation response, <100ms UI interactions, 60fps animations  
 **Constraints**: Local-only storage (no cloud uploads), minimal dependencies, offline-capable viewing  
 **Scale/Scope**: Single user, ~1000 photos per project, ~10 projects, 5-10 core UI screens
@@ -52,8 +52,8 @@ AI photo generation and album management application that allows users to genera
 - Avoiding patterns? Yes (direct SQL queries, no ORM abstraction)
 
 **Architecture**:
-- EVERY feature as library? Yes (photo-gen, album-mgmt, storage libs)
-- Libraries listed: photo-generation (fal.ai integration), album-management (CRUD + drag-drop), sqlite-storage (local persistence)
+- EVERY feature as library? Yes (photo-gen, album-mgmt, storage libs within packages/)
+- Libraries listed: @repo/photo-generation (fal.ai integration), @repo/album-management (CRUD + drag-drop), @repo/sqlite-storage (local persistence)
 - CLI per library: photo-gen CLI, album CLI, storage CLI with --help/--version/--format
 - Library docs: llms.txt format planned for each library
 
@@ -90,42 +90,32 @@ specs/[###-feature]/
 
 ### Source Code (repository root)
 ```
-# Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+# Existing Turborepo Monorepo Structure
+apps/
+├── web/                    # Next.js 15 main application
+│   ├── app/               # Next.js app router
+│   ├── components/        # App-specific React components
+│   ├── lib/              # App utilities and config
+│   └── __tests__/        # App-level tests
+└── docs/                  # Documentation site
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+packages/
+├── ui/                    # Shared React component library (@repo/ui)
+├── photo-generation/      # NEW: fal.ai integration library (@repo/photo-generation)
+├── album-management/      # NEW: CRUD + drag-drop library (@repo/album-management)  
+├── sqlite-storage/        # NEW: local persistence library (@repo/sqlite-storage)
+├── eslint-config/         # Shared ESLint config (@repo/eslint-config)
+└── typescript-config/     # Shared TypeScript config (@repo/typescript-config)
 
-# Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure]
+# Tests distributed per package
+packages/photo-generation/
+└── __tests__/
+    ├── contract/
+    ├── integration/
+    └── unit/
 ```
 
-**Structure Decision**: Single project structure - web application with local persistence only
+**Structure Decision**: Turborepo monorepo - Next.js app in apps/web with feature libraries in packages/
 
 ## Phase 0: Outline & Research
 1. **Extract unknowns from Technical Context** above:
