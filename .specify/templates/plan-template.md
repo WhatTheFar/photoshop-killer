@@ -107,42 +107,51 @@ specs/[###-feature]/
 ### Source Code (repository root)
 
 ```
-# Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure]
+# Turborepo Monorepo Structure
+photoshop-killer/
+├── apps/                     # Applications
+│   ├── web/                  # Main web application (Next.js)
+│   │   ├── app/              # Next.js 13+ app directory
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   └── globals.css
+│   │   ├── public/           # Static assets
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   └── next.config.js
+│   └── docs/                 # Documentation site (Next.js)
+│       ├── app/
+│       ├── public/
+│       └── [same structure as web]
+├── packages/                 # Shared packages
+│   ├── ui/                   # Shared UI components (@repo/ui)
+│   │   ├── src/
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   └── code.tsx
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   ├── eslint-config/        # Shared ESLint configurations (@repo/eslint-config)
+│   │   ├── base.js
+│   │   ├── next.js
+│   │   └── react-internal.js
+│   ├── typescript-config/    # Shared TypeScript configurations (@repo/typescript-config)
+│   │   ├── base.json
+│   │   ├── nextjs.json
+│   │   └── react-library.json
+│   └── [new-packages]/       # Feature-specific shared packages
+├── specs/                    # Feature specifications
+│   └── [###-feature-name]/
+├── tests/                    # Root-level integration tests
+│   ├── e2e/                  # End-to-end tests
+│   ├── integration/          # Cross-package integration tests
+│   └── performance/          # Performance benchmarks
+├── turbo.json                # Turborepo configuration
+├── pnpm-workspace.yaml       # pnpm workspace configuration
+└── package.json              # Root package.json
 ```
 
-**Structure Decision**: [DEFAULT to Option 1 unless Technical Context indicates web/mobile app]
+**Structure Decision**: Turborepo monorepo with Next.js applications and shared packages
 
 ## Phase 0: Outline & Research
 
