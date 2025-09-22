@@ -1,0 +1,59 @@
+# photoshop-killer Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-09-22
+
+## Active Technologies
+
+- TypeScript 5.9+ with React 18+ + shadcn/ui components, Tailwind CSS, fal.ai SDK, SQLite (001-build-an-application)
+
+## Project Structure
+
+```
+photoshop-killer/                # Turborepo monorepo
+├── apps/                        # Applications
+│   ├── web/                     # Main web application (Next.js)
+│   └── docs/                    # Documentation site (Next.js)
+├── packages/                    # Shared packages
+│   ├── ui/                      # Shared UI components (@repo/ui)
+│   ├── eslint-config/           # Shared ESLint configurations
+│   └── typescript-config/       # Shared TypeScript configurations
+├── specs/                       # Feature specifications
+├── tests/                       # Root-level integration tests
+│   ├── e2e/                     # End-to-end tests
+│   ├── integration/             # Cross-package integration tests
+│   └── performance/             # Performance benchmarks
+├── turbo.json                   # Turborepo configuration
+├── pnpm-workspace.yaml          # pnpm workspace configuration
+└── package.json                 # Root package.json
+```
+
+## Commands
+
+```bash
+# Development
+pnpm dev                         # Start all apps in development mode
+pnpm dev --filter=web           # Start specific app
+
+# Building
+pnpm build                       # Build all packages and apps
+pnpm build --filter=@repo/ui    # Build specific package
+
+# Testing
+pnpm test                        # Run all tests
+pnpm lint                        # Run linting across all packages
+pnpm format                      # Format code with Prettier
+
+# Package management
+pnpm add <package> --filter=web  # Add dependency to specific app
+```
+
+## Code Style
+
+TypeScript 5.9+ with React 18+: Follow standard conventions
+
+## Recent Changes
+
+- 001-build-an-application: Added TypeScript 5.9+ with React 18+ + shadcn/ui components, Tailwind CSS, fal.ai SDK, SQLite
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->
