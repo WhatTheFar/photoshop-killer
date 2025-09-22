@@ -1,0 +1,560 @@
+openapi: 3.0.3
+info:
+  title: Photos API
+  description: Manages photo CRUD operations and organization within albums
+  version: 1.0.0
+
+paths:
+  /api/albums/{albumId}/photos:
+    parameters:
+      - name: albumId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: List photos in album with pagination
+      operationId: getPhotosByAlbum
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [created, name, order]
+            default: order
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: List of photos with pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoListResponse'
+        '404':
+          description: Album not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+  /api/photos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get single photo with metadata
+      operationId: getPhoto
+      responses:
+        '200':
+          description: Photo details with metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoDetail'
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+    put:
+      summary: Update photo metadata
+      operationId: updatePhoto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePhotoRequest'
+      responses:
+        '200':
+          description: Photo updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+    delete:
+      summary: Delete photo
+      operationId: deletePhoto
+      responses:
+        '204':
+          description: Photo deleted successfully
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+  /api/photos/generate:
+    post:
+      summary: Generate new photo using AI
+      operationId: generatePhoto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeneratePhotoRequest'
+      responses:
+        '202':
+          description: Photo generation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratePhotoResponse'
+        '400':
+          description: Invalid generation request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+  /api/photos/generation/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Check photo generation status
+      operationId: getGenerationStatus
+      responses:
+        '200':
+          description: Generation status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratePhotoResponse'
+        '404':
+          description: Generation job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+  /api/photos:
+    post:
+      summary: Save generated photo to album
+      operationId: savePhoto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavePhotoRequest'
+      responses:
+        '201':
+          description: Photo saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+        '400':
+          description: Invalid photo data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+  /api/albums/{albumId}/photos/reorder:
+    parameters:
+      - name: albumId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    put:
+      summary: Reorder photos within album
+      operationId: reorderPhotos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderPhotosRequest'
+      responses:
+        '200':
+          description: Photos reordered successfully
+        '400':
+          description: Invalid reorder data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+  /api/photos/move:
+    put:
+      summary: Move photos between albums
+      operationId: movePhotos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovePhotosRequest'
+      responses:
+        '200':
+          description: Photos moved successfully
+        '400':
+          description: Invalid move request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+  /api/photos/bulk-delete:
+    delete:
+      summary: Delete multiple photos
+      operationId: deletePhotos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photoIds
+              properties:
+                photoIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '204':
+          description: Photos deleted successfully
+        '400':
+          description: Invalid delete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoError'
+
+components:
+  schemas:
+    Photo:
+      type: object
+      required:
+        - id
+        - albumId
+        - url
+        - prompt
+        - model
+        - parameters
+        - displayOrder
+        - width
+        - height
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        albumId:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        model:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        displayOrder:
+          type: integer
+          minimum: 0
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        fileSize:
+          type: integer
+          minimum: 0
+        generationTime:
+          type: number
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+
+    PhotoDetail:
+      allOf:
+        - $ref: '#/components/schemas/Photo'
+        - type: object
+          required:
+            - album
+          properties:
+            album:
+              type: object
+              required:
+                - id
+                - name
+                - projectId
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                projectId:
+                  type: string
+                  format: uuid
+            generationMetadata:
+              type: object
+              properties:
+                processingTime:
+                  type: number
+                modelVersion:
+                  type: string
+                cost:
+                  type: number
+
+    PhotoListResponse:
+      type: object
+      required:
+        - photos
+        - pagination
+      properties:
+        photos:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhotoPreview'
+        pagination:
+          type: object
+          required:
+            - page
+            - limit
+            - total
+            - hasNext
+            - hasPrev
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            limit:
+              type: integer
+              minimum: 1
+            total:
+              type: integer
+              minimum: 0
+            hasNext:
+              type: boolean
+            hasPrev:
+              type: boolean
+
+    PhotoPreview:
+      type: object
+      required:
+        - id
+        - url
+        - prompt
+        - width
+        - height
+        - displayOrder
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        prompt:
+          type: string
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        displayOrder:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+
+    GeneratePhotoRequest:
+      type: object
+      required:
+        - prompt
+        - model
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        model:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        albumId:
+          type: string
+          format: uuid
+
+    GeneratePhotoResponse:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, generating, completed, failed]
+        url:
+          type: string
+          format: uri
+        error:
+          type: string
+        estimatedTime:
+          type: integer
+          minimum: 0
+
+    SavePhotoRequest:
+      type: object
+      required:
+        - url
+        - prompt
+        - model
+        - parameters
+        - albumId
+        - width
+        - height
+      properties:
+        url:
+          type: string
+          format: uri
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        model:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        albumId:
+          type: string
+          format: uuid
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        generationTime:
+          type: number
+          minimum: 0
+
+    UpdatePhotoRequest:
+      type: object
+      properties:
+        albumId:
+          type: string
+          format: uuid
+        displayOrder:
+          type: integer
+          minimum: 0
+
+    ReorderPhotosRequest:
+      type: object
+      required:
+        - photoOrders
+      properties:
+        photoOrders:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - displayOrder
+            properties:
+              id:
+                type: string
+                format: uuid
+              displayOrder:
+                type: integer
+                minimum: 0
+
+    MovePhotosRequest:
+      type: object
+      required:
+        - photoIds
+        - targetAlbumId
+      properties:
+        photoIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        targetAlbumId:
+          type: string
+          format: uuid
+
+    PhotoError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - PHOTO_NOT_FOUND
+            - ALBUM_NOT_FOUND
+            - GENERATION_FAILED
+            - INVALID_URL
+            - DUPLICATE_ORDER
+        message:
+          type: string
+        field:
+          type: string

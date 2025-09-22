@@ -1,0 +1,408 @@
+openapi: 3.0.3
+info:
+  title: Prompt Templates API
+  description: Manages reusable prompt configurations for photo generation
+  version: 1.0.0
+
+paths:
+  /api/prompt-templates:
+    get:
+      summary: List all templates with usage stats
+      operationId: getTemplates
+      responses:
+        '200':
+          description: List of prompt templates with statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PromptTemplateWithStats'
+
+    post:
+      summary: Create new template
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptTemplate'
+        '400':
+          description: Invalid template data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateError'
+
+  /api/prompt-templates/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get single template with parameters
+      operationId: getTemplate
+      responses:
+        '200':
+          description: Template details with parameters and recent generations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptTemplateDetail'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateError'
+
+    put:
+      summary: Update template
+      operationId: updateTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptTemplate'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateError'
+
+    delete:
+      summary: Delete template
+      operationId: deleteTemplate
+      responses:
+        '204':
+          description: Template deleted successfully
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateError'
+
+  /api/prompt-templates/{id}/apply:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      summary: Apply template to generate prompt
+      operationId: applyTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: Parameter values to apply to template
+      responses:
+        '200':
+          description: Template applied successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppliedTemplate'
+        '400':
+          description: Invalid parameter values
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateError'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateError'
+
+  /api/prompt-templates/search:
+    get:
+      summary: Search templates by tags or content
+      operationId: searchTemplates
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Search query for template name, description, or tags
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PromptTemplateWithStats'
+
+components:
+  schemas:
+    PromptTemplate:
+      type: object
+      required:
+        - id
+        - name
+        - basePrompt
+        - parameters
+        - model
+        - tags
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        basePrompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptParameter'
+        model:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PromptTemplateWithStats:
+      allOf:
+        - $ref: '#/components/schemas/PromptTemplate'
+        - type: object
+          required:
+            - usageCount
+          properties:
+            usageCount:
+              type: integer
+              minimum: 0
+            lastUsed:
+              type: string
+              format: date-time
+            avgRating:
+              type: number
+              minimum: 0
+              maximum: 5
+
+    PromptTemplateDetail:
+      allOf:
+        - $ref: '#/components/schemas/PromptTemplateWithStats'
+        - type: object
+          properties:
+            recentGenerations:
+              type: array
+              items:
+                type: object
+                required:
+                  - id
+                  - photoUrl
+                  - appliedValues
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  photoUrl:
+                    type: string
+                    format: uri
+                  appliedValues:
+                    type: object
+                    additionalProperties: true
+                  createdAt:
+                    type: string
+                    format: date-time
+
+    PromptParameter:
+      type: object
+      required:
+        - name
+        - type
+        - defaultValue
+        - required
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        type:
+          type: string
+          enum: [text, number, select, multiselect]
+        defaultValue:
+          oneOf:
+            - type: string
+            - type: number
+            - type: array
+              items:
+                type: string
+        required:
+          type: boolean
+        options:
+          type: array
+          items:
+            type: string
+        min:
+          type: number
+        max:
+          type: number
+        placeholder:
+          type: string
+        description:
+          type: string
+          maxLength: 200
+        validation:
+          type: object
+          properties:
+            pattern:
+              type: string
+            message:
+              type: string
+
+    CreateTemplateRequest:
+      type: object
+      required:
+        - name
+        - basePrompt
+        - parameters
+        - model
+        - tags
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        basePrompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptParameter'
+        model:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        basePrompt:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptParameter'
+        model:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    AppliedTemplate:
+      type: object
+      required:
+        - finalPrompt
+        - model
+        - parameters
+        - appliedValues
+      properties:
+        finalPrompt:
+          type: string
+        model:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        appliedValues:
+          type: object
+          additionalProperties: true
+
+    TemplateError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - TEMPLATE_NOT_FOUND
+            - INVALID_PARAMETERS
+            - DUPLICATE_NAME
+            - INVALID_PROMPT
+        message:
+          type: string
+        field:
+          type: string
+        validationErrors:
+          type: array
+          items:
+            type: object
+            required:
+              - parameter
+              - message
+            properties:
+              parameter:
+                type: string
+              message:
+                type: string

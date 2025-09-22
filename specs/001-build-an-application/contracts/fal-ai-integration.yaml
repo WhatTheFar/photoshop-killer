@@ -1,0 +1,463 @@
+openapi: 3.0.3
+info:
+  title: Fal.ai Integration API
+  description: Interface for AI photo generation service integration
+  version: 1.0.0
+
+externalDocs:
+  description: Fal.ai API Documentation
+  url: https://docs.fal.ai
+
+paths:
+  /api/fal/models:
+    get:
+      summary: Get available AI models
+      operationId: getModels
+      responses:
+        '200':
+          description: List of available AI models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FalAIModel'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIError'
+
+  /api/fal/models/{modelId}:
+    parameters:
+      - name: modelId
+        in: path
+        required: true
+        schema:
+          type: string
+
+    get:
+      summary: Get model details and parameters
+      operationId: getModelDetails
+      responses:
+        '200':
+          description: Model details with parameters and examples
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIModelDetail'
+        '404':
+          description: Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIError'
+
+  /api/fal/generate:
+    post:
+      summary: Generate photo using specific model
+      operationId: generatePhoto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FalAIGenerateRequest'
+      responses:
+        '202':
+          description: Generation started (async operation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIGenerateResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIError'
+        '402':
+          description: Quota exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIError'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIError'
+
+  /api/fal/status/{requestId}:
+    parameters:
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Check generation status (for async operations)
+      operationId: getGenerationStatus
+      responses:
+        '200':
+          description: Generation status and results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIStatusResponse'
+        '404':
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FalAIError'
+
+components:
+  schemas:
+    FalAIModel:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - category
+        - pricing
+        - capabilities
+        - status
+      properties:
+        id:
+          type: string
+          example: "fal-ai/flux-pro"
+        name:
+          type: string
+          example: "FLUX.1 Pro"
+        description:
+          type: string
+          example: "High-quality image generation with professional results"
+        category:
+          type: string
+          example: "text-to-image"
+        pricing:
+          type: object
+          required:
+            - perImage
+            - currency
+          properties:
+            perImage:
+              type: number
+              example: 0.05
+            currency:
+              type: string
+              example: "USD"
+        capabilities:
+          type: array
+          items:
+            type: string
+          example: ["text-to-image", "high-resolution", "style-control"]
+        status:
+          type: string
+          enum: [active, deprecated, maintenance]
+          example: "active"
+
+    FalAIModelDetail:
+      allOf:
+        - $ref: '#/components/schemas/FalAIModel'
+        - type: object
+          required:
+            - parameters
+            - examples
+            - limits
+          properties:
+            parameters:
+              type: array
+              items:
+                $ref: '#/components/schemas/FalAIModelParameter'
+            examples:
+              type: array
+              items:
+                type: object
+                required:
+                  - prompt
+                  - parameters
+                  - imageUrl
+                properties:
+                  prompt:
+                    type: string
+                  parameters:
+                    type: object
+                    additionalProperties: true
+                  imageUrl:
+                    type: string
+                    format: uri
+            limits:
+              type: object
+              required:
+                - maxWidth
+                - maxHeight
+                - maxPromptLength
+                - maxImages
+              properties:
+                maxWidth:
+                  type: integer
+                  example: 2048
+                maxHeight:
+                  type: integer
+                  example: 2048
+                maxPromptLength:
+                  type: integer
+                  example: 1000
+                maxImages:
+                  type: integer
+                  example: 4
+
+    FalAIModelParameter:
+      type: object
+      required:
+        - name
+        - type
+        - required
+        - description
+      properties:
+        name:
+          type: string
+          example: "guidance_scale"
+        type:
+          type: string
+          enum: [string, integer, float, boolean, enum]
+          example: "float"
+        required:
+          type: boolean
+          example: false
+        default:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          example: 7.5
+        min:
+          type: number
+          example: 1.0
+        max:
+          type: number
+          example: 20.0
+        options:
+          type: array
+          items:
+            type: string
+          example: ["euler", "euler_a", "dpm++"]
+        description:
+          type: string
+          example: "Controls how closely the image follows the prompt"
+
+    FalAIGenerateRequest:
+      type: object
+      required:
+        - model
+        - prompt
+      properties:
+        model:
+          type: string
+          example: "fal-ai/flux-pro"
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          example: "A stunning landscape with mountains and lakes at sunset"
+        negativePrompt:
+          type: string
+          maxLength: 500
+          example: "blurry, low quality, distorted"
+        imageSize:
+          type: object
+          properties:
+            width:
+              type: integer
+              minimum: 256
+              maximum: 2048
+              example: 1024
+            height:
+              type: integer
+              minimum: 256
+              maximum: 2048
+              example: 1024
+        numImages:
+          type: integer
+          minimum: 1
+          maximum: 4
+          default: 1
+        seed:
+          type: integer
+          minimum: 0
+          example: 42
+        guidanceScale:
+          type: number
+          minimum: 1
+          maximum: 20
+          default: 7.5
+        numInferenceSteps:
+          type: integer
+          minimum: 1
+          maximum: 150
+          default: 50
+        scheduler:
+          type: string
+          example: "euler"
+        enableSafetyChecker:
+          type: boolean
+          default: true
+
+    FalAIGenerateResponse:
+      type: object
+      required:
+        - requestId
+        - status
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed]
+          example: "pending"
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/FalAIImage'
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+        metadata:
+          type: object
+          properties:
+            processingTimeMs:
+              type: integer
+              example: 15000
+            cost:
+              type: number
+              example: 0.05
+            modelVersion:
+              type: string
+              example: "v1.2.1"
+
+    FalAIStatusResponse:
+      type: object
+      required:
+        - requestId
+        - status
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed]
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 75
+        estimatedTimeRemaining:
+          type: integer
+          minimum: 0
+          example: 5
+          description: "Estimated time remaining in seconds"
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/FalAIImage'
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    FalAIImage:
+      type: object
+      required:
+        - url
+        - width
+        - height
+        - contentType
+      properties:
+        url:
+          type: string
+          format: uri
+          example: "https://fal.media/files/elephant/xyz123.jpg"
+        width:
+          type: integer
+          example: 1024
+        height:
+          type: integer
+          example: 1024
+        fileSize:
+          type: integer
+          example: 2048576
+          description: "File size in bytes"
+        contentType:
+          type: string
+          example: "image/jpeg"
+        seed:
+          type: integer
+          example: 42
+
+    FalAIError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - INVALID_MODEL
+            - INVALID_PROMPT
+            - QUOTA_EXCEEDED
+            - SERVICE_UNAVAILABLE
+            - GENERATION_FAILED
+          example: "INVALID_PROMPT"
+        message:
+          type: string
+          example: "The provided prompt is too long or contains forbidden content"
+        details:
+          type: object
+          properties:
+            model:
+              type: string
+            requestId:
+              type: string
+            httpStatus:
+              type: integer
+
+    FalAIRateLimit:
+      type: object
+      required:
+        - remaining
+        - resetTime
+        - limit
+      properties:
+        remaining:
+          type: integer
+          example: 95
+          description: "Number of requests remaining in current window"
+        resetTime:
+          type: string
+          format: date-time
+          example: "2025-09-22T15:30:00Z"
+          description: "When the rate limit window resets"
+        limit:
+          type: integer
+          example: 100
+          description: "Total requests allowed per window"

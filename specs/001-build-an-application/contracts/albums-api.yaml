@@ -1,0 +1,349 @@
+openapi: 3.0.3
+info:
+  title: Albums API
+  description: Manages album CRUD operations and photo organization
+  version: 1.0.0
+
+paths:
+  /api/projects/{projectId}/albums:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: List albums for a project
+      operationId: getAlbumsByProject
+      responses:
+        '200':
+          description: List of albums with photo counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlbumWithPhotoCount'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumError'
+
+    post:
+      summary: Create new album
+      operationId: createAlbum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlbumRequest'
+      responses:
+        '201':
+          description: Album created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumError'
+
+  /api/albums/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get single album with photos
+      operationId: getAlbum
+      responses:
+        '200':
+          description: Album details with photos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumDetail'
+        '404':
+          description: Album not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumError'
+
+    put:
+      summary: Update album details
+      operationId: updateAlbum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAlbumRequest'
+      responses:
+        '200':
+          description: Album updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+        '404':
+          description: Album not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumError'
+
+    delete:
+      summary: Delete album (cascades to photos)
+      operationId: deleteAlbum
+      responses:
+        '204':
+          description: Album deleted successfully
+        '404':
+          description: Album not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumError'
+
+  /api/projects/{projectId}/albums/reorder:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    put:
+      summary: Reorder albums within project
+      operationId: reorderAlbums
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderAlbumsRequest'
+      responses:
+        '200':
+          description: Albums reordered successfully
+        '400':
+          description: Invalid reorder data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumError'
+
+  /api/albums/{albumId}/cover/{photoId}:
+    parameters:
+      - name: albumId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: photoId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    put:
+      summary: Set album cover photo
+      operationId: setCoverPhoto
+      responses:
+        '200':
+          description: Cover photo set successfully
+        '404':
+          description: Album or photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumError'
+
+components:
+  schemas:
+    Album:
+      type: object
+      required:
+        - id
+        - name
+        - projectId
+        - displayOrder
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        projectId:
+          type: string
+          format: uuid
+        displayOrder:
+          type: integer
+          minimum: 0
+        coverPhotoId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AlbumWithPhotoCount:
+      allOf:
+        - $ref: '#/components/schemas/Album'
+        - type: object
+          required:
+            - photoCount
+          properties:
+            photoCount:
+              type: integer
+              minimum: 0
+            coverPhotoUrl:
+              type: string
+              format: uri
+
+    AlbumDetail:
+      allOf:
+        - $ref: '#/components/schemas/AlbumWithPhotoCount'
+        - type: object
+          required:
+            - photos
+            - project
+          properties:
+            photos:
+              type: array
+              items:
+                $ref: '#/components/schemas/PhotoPreview'
+            project:
+              type: object
+              required:
+                - id
+                - name
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+
+    PhotoPreview:
+      type: object
+      required:
+        - id
+        - url
+        - prompt
+        - width
+        - height
+        - displayOrder
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        prompt:
+          type: string
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        displayOrder:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateAlbumRequest:
+      type: object
+      required:
+        - name
+        - projectId
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        projectId:
+          type: string
+          format: uuid
+
+    UpdateAlbumRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+
+    ReorderAlbumsRequest:
+      type: object
+      required:
+        - albumOrders
+      properties:
+        albumOrders:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - displayOrder
+            properties:
+              id:
+                type: string
+                format: uuid
+              displayOrder:
+                type: integer
+                minimum: 0
+
+    AlbumError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - ALBUM_NOT_FOUND
+            - PROJECT_NOT_FOUND
+            - INVALID_NAME
+            - DUPLICATE_ORDER
+        message:
+          type: string
+        field:
+          type: string
